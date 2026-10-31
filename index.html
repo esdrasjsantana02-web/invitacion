@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tengo una invitación para ti 💌</title>
+<style>
+:root{--bg:#fff1f3;--card:#ffffff;--ink:#3b1f2b;--muted:#8a5b6b;--accent:#e11d62;--accent2:#ff7aa2;--line:#f6c9d6;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d0f16;--card:#2a1620;--ink:#ffe9ef;--muted:#d9a3b5;--accent:#ff5c8a;--accent2:#ff9db9;--line:#4a2535;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman",serif;display:flex;justify-content:center;padding:20px}
+.wrap{width:100%;max-width:440px;position:relative}
+.screen{display:none;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:28px 22px;text-align:center;box-shadow:0 10px 30px rgba(225,29,98,.12);animation:in .4s ease}
+.screen.on{display:block}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.emoji{font-size:56px;margin-bottom:6px}
+h1{font-size:26px;margin:6px 0 10px;line-height:1.2}
+p{color:var(--muted);line-height:1.5;margin:0 0 18px}
+button{font:inherit;cursor:pointer;border:0;border-radius:999px;padding:13px 26px;font-size:17px;touch-action:manipulation}
+.yes{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:bold}
+.no{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.row{display:flex;gap:14px;justify-content:center;align-items:center;min-height:56px;flex-wrap:wrap}
+input[type=date]{font:inherit;font-size:18px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%;margin-bottom:16px}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.plan{background:var(--bg);border:2px solid var(--line);border-radius:16px;padding:14px 8px;color:var(--ink);font-size:15px;display:flex;flex-direction:column;gap:6px;align-items:center}
+.plan span{font-size:30px}
+.plan.sel{border-color:var(--accent);background:var(--card);box-shadow:0 0 0 3px rgba(225,29,98,.18)}
+.sum{background:var(--bg);border-radius:14px;padding:14px;margin-bottom:18px;color:var(--ink);line-height:1.6}
+.hearts{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.hearts i{position:absolute;bottom:-30px;font-style:normal;animation:up 4s linear forwards}
+@keyframes up{to{transform:translateY(-110vh) rotate(25deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section class="screen on" id="s1">
+  <div class="emoji">💌</div>
+  <h1 id="title">Tengo una invitación para ti</h1>
+  <p>Es una cita. Tú eliges el día y el plan. ¿Aceptas?</p>
+  <div class="row">
+    <button class="yes" id="yes">Sí, acepto 💖</button>
+    <button class="no" id="no">No</button>
+  </div>
+</section>
+
+<section class="screen" id="s2">
+  <div class="emoji">📅</div>
+  <h1>¿Qué día te queda bien?</h1>
+  <p>La cita es de 2:00 a 2:30 pm. Elige el día.</p>
+  <div class="plans" id="dates"></div>
+  <button class="yes" id="next1">Continuar</button>
+</section>
+
+<section class="screen" id="s3">
+  <div class="emoji">✨</div>
+  <h1>¿Qué plan te gusta más?</h1>
+  <p>Toca el que quieras.</p>
+  <div class="plans" id="plans"></div>
+  <button class="yes" id="next2">Continuar</button>
+</section>
+
+<section class="screen" id="s4">
+  <div class="emoji">🥰</div>
+  <h1>¡Es una cita!</h1>
+  <div class="sum" id="sum"></div>
+  <button class="yes" id="send">Confirmar por WhatsApp</button>
+</section>
+
+</div>
+<div class="hearts" id="hearts"></div>
+
+<script>
+// ===== CONFIGURA AQUÍ =====
+var NOMBRE = "";            // nombre de ella (opcional), ej. "Mariana"
+var TU_NUMERO = "18299833483";         // tu WhatsApp con código de país, sin + ni espacios, ej. "18095551234"
+var PLANES = [
+  {e:"🎬", n:"Cine"},
+  {e:"🏛️", n:"Zona Colonial"},
+  {e:"🌳", n:"Parque o museo"},
+  {e:"🍕", n:"Comer rico"},
+  {e:"🕹️", n:"Arcade en la plaza"},
+  {e:"🎨", n:"Manualidades en casa"},
+  {e:"🦁", n:"Zoológico"},
+  {e:"📺", n:"Película en casa"}
+];
+var FECHAS = ["Sábado 14 de noviembre", "Domingo 15 de noviembre", "Sábado 21 de noviembre", "Domingo 22 de noviembre"];
+var HORA = "2:00 – 2:30 pm";
+// ==========================
+
+var plan = null;
+var $ = function(id){return document.getElementById(id)};
+function show(id){
+  document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("on")});
+  $(id).classList.add("on");
+}
+function burst(){
+  var h = $("hearts"), em = ["💖","💗","💕","🌸","✨"];
+  for(var i=0;i<22;i++){
+    var el = document.createElement("i");
+    el.textContent = em[i % em.length];
+    el.style.left = Math.random()*100 + "%";
+    el.style.fontSize = (18 + Math.random()*22) + "px";
+    el.style.animationDelay = (Math.random()*1.2) + "s";
+    h.appendChild(el);
+    setTimeout(function(e){return function(){e.remove()}}(el), 5500);
+  }
+}
+if(NOMBRE){ $("title").textContent = NOMBRE + ", tengo una invitación para ti"; }
+
+// Botón "No" que se escapa
+var no = $("no");
+function dodge(e){
+  if(e) e.preventDefault();
+  no.style.position = "fixed";
+  var w = window.innerWidth - 110, h = window.innerHeight - 70;
+  no.style.left = Math.max(10, Math.random()*w) + "px";
+  no.style.top = Math.max(10, Math.random()*h) + "px";
+}
+no.addEventListener("mouseover", dodge);
+no.addEventListener("touchstart", dodge, {passive:false});
+no.addEventListener("click", dodge);
+
+$("yes").onclick = function(){ burst(); no.style.display = "none"; show("s2"); };
+
+var dia = null;
+FECHAS.forEach(function(f){
+  var b = document.createElement("button");
+  b.className = "plan";
+  b.innerHTML = "<span>📅</span>" + f;
+  b.onclick = function(){
+    dia = f;
+    $("dates").querySelectorAll(".plan").forEach(function(x){x.classList.remove("sel")});
+    b.classList.add("sel");
+  };
+  $("dates").appendChild(b);
+});
+$("next1").onclick = function(){ if(!dia) return; show("s3"); };
+
+PLANES.forEach(function(p, i){
+  var b = document.createElement("button");
+  b.className = "plan";
+  b.innerHTML = "<span>" + p.e + "</span>" + p.n;
+  b.onclick = function(){
+    plan = p;
+    $("plans").querySelectorAll(".plan").forEach(function(x){x.classList.remove("sel")});
+    b.classList.add("sel");
+  };
+  $("plans").appendChild(b);
+});
+
+$("next2").onclick = function(){
+  if(!plan) return;
+  $("sum").innerHTML = "📅 " + dia + "<br>🕑 " + HORA + "<br>" + plan.e + " " + plan.n;
+  burst(); show("s4");
+};
+$("send").onclick = function(){
+  var msg = "¡Acepto la cita! 💖\nDía: " + dia + "\nHora: " + HORA + "\nPlan: " + plan.n;
+  var url = "https://wa.me/" + TU_NUMERO + "?text=" + encodeURIComponent(msg);
+  window.open(url, "_blank");
+};
+</script>
+</body>
+</html>
